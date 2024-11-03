@@ -23,7 +23,7 @@ A **Calculadora de Prova de Concurso Melhorada** é uma aplicação web que perm
 ## Como Utilizar
 
 1. **Obtenha sua Chave API:**
-   - Acesse [https://console.groq.com/settings/profile](https://console.groq.com/settings/profile) para obter sua chave API.
+   - Acesse [[https://console.groq.com/Keys](https://console.groq.com/keys)] para obter sua chave API.
    - Insira a chave no campo "Sua Chave API" na aplicação.
 
 2. **Adicione as Matérias:**
@@ -58,7 +58,7 @@ Nenhuma instalação é necessária. Basta clonar o repositório ou baixar os ar
 
 ```bash
 # Clonar o repositório
-git clone https://github.com/seu-usuario/calculadora-concurso-melhorada.git
+git clone [https://github.com/seu-usuario/calculadora-concurso-melhorada.git](https://github.com/Jailtonfonseca/Calculadora-de-Prova-de-Concurso.git)
 ```
 
 ## Contribuição
@@ -80,7 +80,7 @@ Este projeto está licenciado sob a Licença MIT - veja o arquivo [LICENSE](LICE
 Para quaisquer dúvidas ou sugestões:
 
 - **Email:** seu-email@example.com
-- **GitHub:** [seu-usuario](https://github.com/seu-usuario)
+- **GitHub:** [[Jailtonfonseca](https://github.com/Jailtonfonseca)](https://github.com/Jailtonfonseca)
 
 ---
 
