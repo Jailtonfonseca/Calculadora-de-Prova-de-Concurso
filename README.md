@@ -54,11 +54,11 @@ A **Calculadora de Prova de Concurso Melhorada** é uma aplicação web que perm
 
 ## Instalação
 
-Nenhuma instalação é necessária. Basta clonar o repositório ou baixar os arquivos e abrir o `index.html` em seu navegador web.
+Nenhuma instalação é necessária. Basta clonar o repositório ou baixar os arquivos e abrir o `Calculadora.html` em seu navegador web.
 
 ```bash
 # Clonar o repositório
-git clone [https://github.com/seu-usuario/calculadora-concurso-melhorada.git](https://github.com/Jailtonfonseca/Calculadora-de-Prova-de-Concurso.git)
+git clone https://github.com/Jailtonfonseca/Calculadora-de-Prova-de-Concurso.git
 ```
 
 ## Contribuição
