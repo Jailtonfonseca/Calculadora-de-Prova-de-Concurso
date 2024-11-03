@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <!-- Metadados e links -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calculadora de Prova de Concurso Melhorada</title>
+    <!-- Estilos -->
+    <style>
+        /* Estilos gerais */
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        /* Container principal */
+        .container {
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+        }
+        /* Títulos */
+        h1, h2 {
+            text-align: center;
+            color: #4a90e2;
+        }
+        /* Formulários e inputs */
+        .materia, .resumo {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, select {
+            margin-bottom: 10px;
+            width: calc(100% - 10px);
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        /* Botões */
+        button {
+            margin: 10px 5px;
+            padding: 10px 15px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #4a90e2;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        /* Gráficos */
+        .chart-container {
+            width: 100%;
+            margin: 20px 0;
+        }
+        /* Blocos de matérias */
+        .blocos-materias {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .bloco-materia {
+            flex: 1 1 calc(48% - 10px);
+            background: #e6f7ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        /* Botão de remover matéria */
+        .btn-remover {
+            float: right;
+            background-color: #ff4d4d;
+        }
+        /* Estilo para o botão dentro do summary */
+        details summary button {
+            float: right;
+            background-color: #ff4d4d;
+            margin-top: -5px;
+        }
+    </style>
+    <!-- Biblioteca Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- Conteúdo principal -->
+    <div class="container">
+        <h1>Calculadora de Prova de Concurso Melhorada</h1>
+        <!-- Campo para a chave API -->
+        <div class="materia">
+            <label>Sua Chave API:</label>
+            <input type="password" id="chave-api" placeholder="Insira sua chave API">
+            <p>Obtenha sua chave API em: <a href="https://console.groq.com/keys" target="_blank">https://console.groq.com/keys</a></p>
+        </div>
+        <!-- Formulário para adicionar matérias -->
+        <div class="materia" id="formulario-materia">
+            <label>Nome da Matéria:</label>
+            <input type="text" id="nome-materia">
+            <label>Quantidade de Questões:</label>
+            <input type="number" id="quantidade-questoes">
+            <label>Valor de Cada Questão:</label>
+            <input type="number" id="valor-questao">
+            <label>Quantidade de Acertos:</label>
+            <input type="number" id="quantidade-acertos">
+            <button type="button" onclick="adicionarMateria()">Adicionar Matéria</button>
+        </div>
+        <!-- Campo para o nome do concurso -->
+        <label>Nome do Concurso:</label>
+        <input type="text" id="nome-concurso">
+        <!-- Campo para o tempo de estudo diário -->
+        <label>Tempo de Estudo Diário (em horas):</label>
+        <input type="number" id="tempo-estudo-diario" step="0.1">
+        <!-- Pergunta quantos dias na semana o usuário pretende estudar -->
+        <label>Dias de Estudo na Semana:</label>
+        <input type="number" id="dias-estudo-semana" min="1" max="7">
+        <!-- Selecionador do período de estudo -->
+        <label>Período Disponível para Estudo:</label>
+        <select id="periodo-estudo">
+            <option value="Matutino">Matutino</option>
+            <option value="Vespertino">Vespertino</option>
+            <option value="Noturno">Noturno</option>
+            <option value="Integral">Integral</option>
+        </select>
+        <!-- Botões de ação -->
+        <button onclick="calcularResultado()">Calcular Resultado</button>
+        <button onclick="baixarResultado()">Baixar Resultado</button>
+        <!-- Div para exibir o resultado -->
+        <div id="resultado"></div>
+        <!-- Div para exibir os gráficos -->
+        <div class="chart-container">
+            <canvas id="grafico"></canvas>
+        </div>
+        <!-- Div para exibir as matérias adicionadas -->
+        <div id="materias" class="blocos-materias"></div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Função para capitalizar a primeira letra
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
+        let materiaIndex = 0;
+        let materiaId = 0; // ID único para cada matéria
+        const materiasData = [];
+
+        // Função para adicionar matéria
+        function adicionarMateria() {
+            const nomeMateria = capitalizeFirstLetter(document.getElementById("nome-materia").value);
+            const quantidadeQuestoes = parseInt(document.getElementById("quantidade-questoes").value);
+            const valorQuestao = parseFloat(document.getElementById("valor-questao").value);
+            const quantidadeAcertos = parseInt(document.getElementById("quantidade-acertos").value);
+
+            // Validação dos campos
+            if (isNaN(quantidadeQuestoes) || isNaN(valorQuestao) || isNaN(quantidadeAcertos) || nomeMateria === "") {
+                alert("Por favor, preencha todos os campos corretamente.");
+                return;
+            }
+
+            materiaId++; // Incrementa o ID único
+
+            const materia = {
+                id: materiaId,
+                nomeMateria,
+                quantidadeQuestoes,
+                valorQuestao,
+                quantidadeAcertos
+            };
+
+            materiasData.push(materia);
+
+            // Cria o bloco de matéria
+            const blocoMateria = document.createElement("div");
+            blocoMateria.classList.add("bloco-materia");
+            blocoMateria.id = 'materia-' + materia.id;
+
+            const porcentagemAcertos = (quantidadeAcertos / quantidadeQuestoes) * 100;
+            const porcentagemErros = 100 - porcentagemAcertos;
+
+            blocoMateria.innerHTML = `
+                <details>
+                    <summary>
+                        ${nomeMateria}
+                        <button type="button" class="btn-remover" onclick="removerMateria(${materia.id})">Remover</button>
+                    </summary>
+                    <p>Quantidade de Questões: ${quantidadeQuestoes}</p>
+                    <p>Valor de Cada Questão: ${valorQuestao}</p>
+                    <p>Quantidade de Acertos: ${quantidadeAcertos}</p>
+                    <p>Pontuação Obtida: ${(quantidadeAcertos * valorQuestao).toFixed(2)}</p>
+                    <p>Porcentagem de Acertos: ${porcentagemAcertos.toFixed(2)}%</p>
+                    <p>Porcentagem de Erros: ${porcentagemErros.toFixed(2)}%</p>
+                </details>
+            `;
+
+            // Adiciona o bloco ao container de matérias
+            const materiasDiv = document.getElementById("materias");
+            materiasDiv.appendChild(blocoMateria);
+            materiaIndex++;
+
+            // Limpa os campos após adicionar
+            document.getElementById("nome-materia").value = "";
+            document.getElementById("quantidade-questoes").value = "";
+            document.getElementById("valor-questao").value = "";
+            document.getElementById("quantidade-acertos").value = "";
+
+            // Atualiza os resultados e o gráfico
+            calcularResultado();
+        }
+
+        // Função para remover matéria
+        function removerMateria(id) {
+            // Remove a matéria do array
+            const index = materiasData.findIndex(materia => materia.id === id);
+            if (index !== -1) {
+                materiasData.splice(index, 1);
+            }
+
+            // Remove o bloco de matéria do DOM
+            const blocoMateria = document.getElementById('materia-' + id);
+            if (blocoMateria) {
+                blocoMateria.parentNode.removeChild(blocoMateria);
+            }
+
+            // Atualiza os resultados e o gráfico
+            calcularResultado();
+        }
+
+        let chartImageData = ''; // Variável para armazenar a imagem do gráfico
+
+        // Função para calcular o resultado geral
+        function calcularResultado() {
+            let totalQuestoes = 0;
+            let totalAcertos = 0;
+            let totalPontos = 0;
+            let totalMaximoPontos = 0;
+
+            // Obtém o tempo de estudo diário
+            const tempoEstudoDiario = parseFloat(document.getElementById("tempo-estudo-diario").value);
+
+            // Obtém os dias de estudo na semana
+            const diasEstudoSemana = parseInt(document.getElementById("dias-estudo-semana").value);
+
+            // Obtém o período de estudo
+            const periodoEstudo = document.getElementById("periodo-estudo").value;
+
+            if (isNaN(tempoEstudoDiario) || tempoEstudoDiario <= 0) {
+                alert("Por favor, insira o tempo de estudo diário válido.");
+                return;
+            }
+
+            if (isNaN(diasEstudoSemana) || diasEstudoSemana < 1 || diasEstudoSemana > 7) {
+                alert("Por favor, insira um número de dias de estudo válido (entre 1 e 7).");
+                return;
+            }
+
+            // Arrays para o gráfico
+            const labels = [];
+            const dataAcertos = [];
+
+            let totalStudyPriority = 0;
+
+            for (let i = 0; i < materiasData.length; i++) {
+                const materia = materiasData[i];
+                if (!materia) {
+                    continue;
+                }
+
+                totalQuestoes += materia.quantidadeQuestoes;
+                totalAcertos += materia.quantidadeAcertos;
+                totalPontos += materia.quantidadeAcertos * materia.valorQuestao;
+                totalMaximoPontos += materia.quantidadeQuestoes * materia.valorQuestao;
+
+                // Dados para o gráfico
+                labels.push(materia.nomeMateria);
+                const porcentagemAcertos = (materia.quantidadeAcertos / materia.quantidadeQuestoes) * 100;
+                dataAcertos.push(porcentagemAcertos.toFixed(2));
+
+                // Calcula o desempenho (performance)
+                const performance = materia.quantidadeAcertos / materia.quantidadeQuestoes;
+
+                // Calcula o peso da matéria
+                const weight = materia.quantidadeQuestoes;
+
+                // Calcula a prioridade de estudo
+                const studyPriority = weight * (1 - performance);
+
+                // Armazena o studyPriority na matéria
+                materia.studyPriority = studyPriority;
+
+                // Soma ao totalStudyPriority
+                totalStudyPriority += studyPriority;
+            }
+
+            if (totalQuestoes === 0) {
+                document.getElementById("resultado").innerHTML = "<h2>Resultado Geral</h2><p>Nenhuma questão foi registrada.</p>";
+                // Limpa o gráfico
+                if (window.bar !== undefined)
+                    window.bar.destroy();
+                return;
+            }
+
+            // Calcula o tempo de estudo alocado para cada matéria
+            for (let i = 0; i < materiasData.length; i++) {
+                const materia = materiasData[i];
+                if (!materia) {
+                    continue;
+                }
+
+                // Calcula o tempo alocado para a matéria
+                const timeAllocated = (materia.studyPriority / totalStudyPriority) * tempoEstudoDiario * diasEstudoSemana;
+
+                // Armazena o timeAllocated na matéria
+                materia.timeAllocated = timeAllocated;
+            }
+
+            let porcentagemAcertos = (totalAcertos / totalQuestoes) * 100;
+            let porcentagemErros = 100 - porcentagemAcertos;
+
+            // Exibe o resultado geral
+            document.getElementById("resultado").innerHTML = `
+                <h2>Resultado Geral</h2>
+                <p>
+                    Total de Questões: ${totalQuestoes} <br>
+                    Total de Acertos: ${totalAcertos} <br>
+                    Total de Pontos: ${totalPontos.toFixed(2)} de ${totalMaximoPontos.toFixed(2)} <br>
+                    Porcentagem de Acertos: ${porcentagemAcertos.toFixed(2)}% <br>
+                    Porcentagem de Erros: ${porcentagemErros.toFixed(2)}% <br>
+                    Tempo de Estudo Diário: ${tempoEstudoDiario.toFixed(2)} horas <br>
+                    Dias de Estudo na Semana: ${diasEstudoSemana} <br>
+                    Período Disponível para Estudo: ${periodoEstudo}
+                </p>
+            `;
+
+            // Exibe a divisão do tempo de estudo
+            let timeAllocationHTML = "<h2>Divisão do Tempo de Estudo</h2><ul>";
+            materiasData.forEach(materia => {
+                timeAllocationHTML += `<li>${materia.nomeMateria}: ${materia.timeAllocated.toFixed(2)} horas por semana</li>`;
+            });
+            timeAllocationHTML += "</ul>";
+
+            // Adiciona a divisão do tempo ao resultado
+            document.getElementById("resultado").innerHTML += timeAllocationHTML;
+
+            // Renderiza o gráfico
+            renderizarGrafico(labels, dataAcertos);
+
+            // Envia os dados para o agente via API
+            enviarDadosParaAgente(materiasData, tempoEstudoDiario, diasEstudoSemana, periodoEstudo);
+
+            // Exibe resumo das matérias com menor desempenho
+            exibirResumoDesempenho();
+        }
+
+        // Função para renderizar o gráfico
+        function renderizarGrafico(labels, dataAcertos) {
+            const ctx = document.getElementById('grafico').getContext('2d');
+            if (window.bar !== undefined)
+                window.bar.destroy(); // Destroi o gráfico anterior para evitar sobreposição
+
+            // Gera cores aleatórias para cada matéria
+            const backgroundColors = labels.map(() => {
+                const r = Math.floor(Math.random() * 255);
+                const g = Math.floor(Math.random() * 255);
+                const b = Math.floor(Math.random() * 255);
+                return `rgba(${r}, ${g}, ${b}, 0.6)`;
+            });
+
+            window.bar = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Acertos (%)',
+                            data: dataAcertos,
+                            backgroundColor: backgroundColors,
+                        }
+                    ]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100
+                        }
+                    }
+                }
+            });
+
+            // Salva a imagem do gráfico
+            chartImageData = ctx.canvas.toDataURL();
+        }
+
+        // Função para exibir resumo das matérias com menor desempenho
+        function exibirResumoDesempenho() {
+            // Ordena as matérias por porcentagem de acertos
+            const materiasOrdenadas = [...materiasData].sort((a, b) => {
+                const porcentagemA = (a.quantidadeAcertos / a.quantidadeQuestoes) * 100;
+                const porcentagemB = (b.quantidadeAcertos / b.quantidadeQuestoes) * 100;
+                return porcentagemA - porcentagemB;
+            });
+
+            // Seleciona as 3 matérias com menor desempenho
+            const materiasDificuldade = materiasOrdenadas.slice(0, 3);
+
+            // Cria o resumo
+            let resumoHTML = "<h2>Áreas para Melhorar</h2><ul>";
+            materiasDificuldade.forEach(materia => {
+                const porcentagemAcertos = (materia.quantidadeAcertos / materia.quantidadeQuestoes) * 100;
+                resumoHTML += `<li>${materia.nomeMateria}: ${porcentagemAcertos.toFixed(2)}% de acertos</li>`;
+            });
+            resumoHTML += "</ul>";
+
+            // Adiciona o resumo ao resultado
+            const resultadoDiv = document.getElementById("resultado");
+            resultadoDiv.innerHTML += resumoHTML;
+        }
+
+        // Função para enviar dados para o agente via API
+        function enviarDadosParaAgente(materiasData, tempoEstudoDiario, diasEstudoSemana, periodoEstudo) {
+            const apiUrl = "https://api.groq.com/openai/v1/chat/completions";
+            const apiKey = document.getElementById("chave-api").value.trim(); // Obtém a chave API inserida pelo usuário
+
+            if (!apiKey) {
+                alert("Por favor, insira sua chave API.");
+                return;
+            }
+
+            // Prepara a mensagem para o agente
+            const mensagens = [
+                {
+                    role: "user",
+                    content: `Com base nos seguintes dados:
+- Matérias: ${materiasData.map(materia => `${materia.nomeMateria} (peso: ${materia.quantidadeQuestoes}, desempenho: ${(materia.quantidadeAcertos / materia.quantidadeQuestoes * 100).toFixed(2)}%, tempo alocado: ${materia.timeAllocated.toFixed(2)} horas)`).join("; ")}
+- Tempo de estudo diário: ${tempoEstudoDiario} horas
+- Dias de estudo na semana: ${diasEstudoSemana}
+- Período disponível para estudo: ${periodoEstudo}
+Por favor, monte um cronograma detalhado da semana, **apenas com as matérias fornecidas**, maximizando meu tempo de estudo e distribuindo as matérias nos dias disponíveis. Não inclua matérias ou informações extras que não estejam na lista fornecida.`
+                }
+            ];
+
+            // Faz a requisição à API
+            fetch(apiUrl, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${apiKey}`
+                },
+                body: JSON.stringify({
+                    messages: mensagens,
+                    model: "llama-3.2-90b-vision-preview"
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    console.error("Erro da API:", data.error);
+                    alert("Ocorreu um erro ao gerar o cronograma. Verifique sua chave API e tente novamente.");
+                    return;
+                }
+                const respostaAgente = data.choices[0].message.content;
+                exibirSugestaoAgente(respostaAgente);
+            })
+            .catch(error => {
+                console.error("Erro ao chamar a API:", error);
+                alert("Ocorreu um erro ao se conectar com a API. Verifique sua conexão e tente novamente.");
+            });
+        }
+
+        // Função para exibir a sugestão do agente
+        function exibirSugestaoAgente(sugestao) {
+            const resultadoDiv = document.getElementById("resultado");
+            // Substitui as quebras de linha por <br>
+            const sugestaoFormatada = sugestao.replace(/\n/g, '<br>');
+            resultadoDiv.innerHTML += `
+                <h2>Cronograma de Estudo da Semana</h2>
+                <p>${sugestaoFormatada}</p>
+            `;
+        }
+
+        // Função para baixar o resultado em HTML
+        function baixarResultado() {
+            const nomeConcurso = capitalizeFirstLetter(document.getElementById("nome-concurso").value);
+            if (nomeConcurso === "") {
+                alert("Por favor, insira o nome do concurso.");
+                return;
+            }
+
+            const resultado = document.getElementById("resultado").innerHTML;
+            if (resultado === "" || resultado.includes("Nenhuma questão foi registrada")) {
+                alert("Por favor, calcule o resultado antes de baixar.");
+                return;
+            }
+
+            // Inclui a imagem do gráfico no relatório
+            const graficoImg = chartImageData ? `<img src="${chartImageData}" alt="Gráfico de Desempenho">` : '';
+
+            // Conteúdo do arquivo
+            let conteudo = `<!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>Resultado - ${nomeConcurso}</title>
+                <style>
+                    body {
+                        font-family: 'Roboto', sans-serif;
+                        background-color: #f0f2f5;
+                        color: #333;
+                        padding: 20px;
+                    }
+                    h1, h2 {
+                        text-align: center;
+                        color: #4a90e2;
+                    }
+                    p, li {
+                        font-size: 18px;
+                    }
+                    .bloco-materia {
+                        background: #e6f7ff;
+                        padding: 15px;
+                        border-radius: 8px;
+                        margin-bottom: 15px;
+                    }
+                    img {
+                        max-width: 100%;
+                        height: auto;
+                        display: block;
+                        margin: 20px auto;
+                    }
+                </style>
+            </head>
+            <body>
+                <h1>Resultado do Concurso: ${nomeConcurso}</h1>
+                ${resultado}
+                ${graficoImg}
+                <h2>Detalhes por Matéria</h2>
+                ${materiasData.map(materia => {
+                    const porcentagemAcertos = (materia.quantidadeAcertos / materia.quantidadeQuestoes) * 100;
+                    const recomendacao = gerarRecomendacao(porcentagemAcertos);
+                    return `
+                        <div class="bloco-materia">
+                            <h3>${materia.nomeMateria}</h3>
+                            <p>Quantidade de Questões: ${materia.quantidadeQuestoes}</p>
+                            <p>Valor de Cada Questão: ${materia.valorQuestao}</p>
+                            <p>Quantidade de Acertos: ${materia.quantidadeAcertos}</p>
+                            <p>Pontuação Obtida: ${(materia.quantidadeAcertos * materia.valorQuestao).toFixed(2)}</p>
+                            <p>Porcentagem de Acertos: ${porcentagemAcertos.toFixed(2)}%</p>
+                            <p>Porcentagem de Erros: ${(100 - porcentagemAcertos).toFixed(2)}%</p>
+                            <p>Tempo de Estudo Recomendado: ${materia.timeAllocated.toFixed(2)} horas por semana</p>
+                            <p><strong>Recomendação:</strong> ${recomendacao}</p>
+                        </div>
+                    `;
+                }).join('')}
+            </body>
+            </html>`;
+
+            // Cria e baixa o arquivo
+            const blob = new Blob([conteudo], { type: "text/html" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `${nomeConcurso}-resultado.html`;
+            link.click();
+        }
+
+        // Função para gerar recomendações com base no desempenho
+        function gerarRecomendacao(porcentagemAcertos) {
+            if (porcentagemAcertos >= 90) {
+                return "Excelente desempenho! Continue revisando para manter o conhecimento.";
+            } else if (porcentagemAcertos >= 70) {
+                return "Bom desempenho. Revise os pontos onde teve dificuldades para melhorar ainda mais.";
+            } else if (porcentagemAcertos >= 50) {
+                return "Desempenho mediano. É recomendável reforçar o estudo nessa matéria.";
+            } else {
+                return "Desempenho abaixo do esperado. Foque nos fundamentos e pratique mais exercícios.";
+            }
+        }
+    </script>
+</body>
+</html>
+
